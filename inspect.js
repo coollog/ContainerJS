@@ -3,15 +3,8 @@ document.getElementById('getTags').onclick = () => {
   const repository = document.getElementById('repository').value;
 
   // Loads leftmiddle panel, hides all other panels.
-  const panel = document.getElementById('leftmiddlepanel');
-  panel.style.marginLeft = 0;
-  panel.children[0].classList.add('loading');
-  const panelsToHide = [
-    document.getElementById('middlepanel'),
-    document.getElementById('rightmiddlepanel')
-  ];
-  panelsToHide.forEach(panel => panel.style.marginLeft = '-20%');
-  hideErrorPanel();
+  loadPanel('leftmiddlepanel');
+  hidePanels('middlepanel', 'rightmiddlepanel', 'errorpanel');
   clearTextarea();
 
   const containerRepository = new Container.Repository(registry, repository);
@@ -25,8 +18,7 @@ function displayTags(containerRepository, tags) {
   registerTagButtons(containerRepository);
 
   // Shows leftmiddle panel children.
-  const panel = document.getElementById('leftmiddlepanel');
-  panel.children[0].classList.remove('loading');
+  showPanel('leftmiddlepanel');
 }
 
 function makeTagButtons(tags) {
@@ -43,12 +35,8 @@ function registerTagButtons(containerRepository) {
       const tag = tagButton.innerHTML;
 
       // Loads middle panel, hides all other panels.
-      const panel = document.getElementById('middlepanel');
-      panel.style.marginLeft = 0;
-      panel.children[0].classList.add('loading');
-      const panelToHide = document.getElementById('rightmiddlepanel');
-      panelToHide.style.marginLeft = '-20%';
-      hideErrorPanel();
+      loadPanel('middlepanel');
+      hidePanels('rightmiddlepanel', 'errorpanel');
       clearTextarea();
 
       const image = containerRepository.Image(tag);
@@ -84,8 +72,7 @@ function registerTagButtons(containerRepository) {
           layersPromise])
         .then(promises => {
           // Shows middle panel children.
-          const panel = document.getElementById('middlepanel');
-          panel.children[0].classList.remove('loading');
+          showPanel('middlepanel');
         })
         .catch(err => {
           if (!(err instanceof Container.RegistryError)) return;
@@ -136,10 +123,8 @@ function registerLayerButtons(layerBlobs) {
 
     layerButton.onclick = async () => {
       // Loads rightmiddle panel, hides right panel.
-      const panel = document.getElementById('rightmiddlepanel');
-      panel.style.marginLeft = 0;
-      panel.children[0].classList.add('loading');
-      hideErrorPanel();
+      loadPanel('rightmiddlepanel');
+      hidePanels('errorpanel');
 
       const layerBlob = digestToBlob[layerDigest];
       const layerContent = await layerBlob.arrayBuffer;
@@ -150,8 +135,7 @@ function registerLayerButtons(layerBlobs) {
           registerFileButtons(files);
 
           // Shows rightmiddle panel children.
-          const panel = document.getElementById('rightmiddlepanel');
-          panel.children[0].classList.remove('loading');
+          showPanel('rightmiddlepanel');
         },
         err => {
           throw 'untar error: ' + err
@@ -186,14 +170,24 @@ function registerFileButtons(files) {
   }
 }
 
+function loadPanel(panelId) {
+  const panel = document.getElementById(panelId);
+  panel.style.marginLeft = 0;
+  panel.children[0].classList.add('loading');
+}
+function showPanel(panelId) {
+  const panel = document.getElementById(panelId);
+  panel.children[0].classList.remove('loading');
+}
+function hidePanels(...panelIds) {
+  const panelsToHide = panelIds.map(panelId => document.getElementById(panelId));
+  panelsToHide.forEach(panel => panel.style.marginLeft = '-20%');
+}
 function showErrorPanel(errorMessage) {
   const panel = document.getElementById('errorpanel');
   panel.style.marginLeft = 0;
   const errorLabel = document.getElementById('error');
   errorLabel.innerHTML = errorMessage;
-}
-function hideErrorPanel() {
-  document.getElementById('errorpanel').style.marginLeft = '-20%';
 }
 function clearTextarea() {
   document.getElementById('textname').innerHTML = '';
