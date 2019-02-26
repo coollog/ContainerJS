@@ -72,50 +72,55 @@ function containerPullManifest(registry, repository, tag, authToken) {
   )
 }
 
+let imageSet = {};
+
 function listAllDockerHubImages() {
-  let imageSet = {};
   let totalReceived = 0;
 
-  const pageSize = 100;
-  const pageCount = 10;
+  const pageSize = 10000;
+  const pageCount = 100;
 
-  function search(page, pageSize, extraParams) {
+  function search(page, pageSize, extraParams = '') {
     const url = 'https://hub.docker.com/api/content/v1/products/search?page=' + page + '&page_size=' + pageSize + '&q=&type=image' + extraParams;
-    return fetch(makeCorsUrl(url), {
-      headers: {
-        Origin: '*',
-        'Search-Version': 'v3'
-      }
-    })
-    .then(response => {
-      return response.json();
-    })
-    .then(result => {
-      let images = {};
-      result.summaries.map(summary => {
-        images[summary.slug] = true;
+
+    function doFetch() {
+      return fetch(makeCorsUrl(url), {
+          headers: {
+            Origin: '*',
+            'Search-Version': 'v3'
+          }
+        })
+        .then(response => {
+          if (response.status !== 200) {
+            return doFetch();
+          }
+          return response.json();
+        })
+        .catch(err => {
+          return doFetch();
+        });
+    }
+
+    return doFetch()
+      .then(result => {
+        let images = {};
+        result.summaries.map(summary => {
+          images[summary.slug] = true;
+        });
+        return images;
+      })
+      .then(images => {
+        imageSet = {...imageSet, ...images};
+        totalReceived += Object.keys(images).length;
+        setStatus('Total images received: ' + totalReceived + '/' + pageSize * pageCount * 2);
       });
-      return images;
-    })
-    .then(images => {
-      imageSet = {...imageSet, ...images};
-      totalReceived += Object.keys(images).length;
-      setStatus('Total images received: ' + totalReceived + '/' + pageSize * pageCount * 2);
-    });
   }
 
-  let promises = [];
-
-  for (let page = 1; page <= pageCount; page ++) {
-    // Sorted by last updated.
-    promises.push(search(page, pageSize, '&sort=updated_at&order=desc'));
+  function doSearch(page, extraParams) {
+    if (page > pageCount) return Promise.resolve();
+    return search(page, pageSize, extraParams).then(() => doSearch(page + 1));
   }
-  for (let page = 1; page <= pageCount; page ++) {
-    // Sorted by most popular.
-    promises.push(search(page, pageSize));
-  }
-
-  return Promise.all(promises).then(() => Object.keys(imageSet));
+  return doSearch(1).then(() => doSearch(1, '&sort=updated_at&order=desc')).then(() => Object.keys(imageSet));
 }
 
 listAllDockerHubImages()
