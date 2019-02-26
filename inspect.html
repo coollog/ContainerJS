@@ -20,6 +20,7 @@ Password: <input id="password" type="password" />
   <pre id="manifest"></pre>
 </div>
 
+<script src="containers.js"></script>
 <script>
   function makeCorsUrl(url) {
     const corsProxy = 'https://cors-anywhere.herokuapp.com/';
@@ -156,9 +157,12 @@ Password: <input id="password" type="password" />
     const registry = document.getElementById('registry').value;
     const repository = document.getElementById('repository').value;
 
-    listTags(registry, repository).then(tags => {
-      document.getElementById('tags').innerHTML = makeTagButtons(registry, repository, tags);
-      registerTagButtons();
-    });
+    containerRegistry = new ContainerRegistry(registry, repository);
+    containerRegistry
+      .listTags()
+      .then(tags => {
+        document.getElementById('tags').innerHTML = makeTagButtons(registry, repository, tags);
+        registerTagButtons();
+      });
   };
 </script>
