@@ -1,4 +1,8 @@
 <style>
+  #file {
+    width: 500px;
+    height: 200px;
+  }
 </style>
 
 Registry: <input id="registry" value="registry.hub.docker.com" />
@@ -19,33 +23,116 @@ Password: <input id="password" type="password" />
   Manifest:
   <pre id="manifest"></pre>
 </div>
+<div>
+  Config:
+  <pre id="config"></pre>
+</div>
+<div>
+  Layers:
+  <div id="layers"></div>
+  <div id="files"></div>
+  Showing file <span id="filename"></span>:
+  <br />
+  <textarea id="file"></textarea>
+</div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pako/1.0.8/pako_inflate.min.js"></script>
+<script type='text/javascript' src="https://cdn.jsdelivr.net/gh/InvokIT/js-untar@v2.0.0/build/dist/untar.js"></script>
 <script src="container.js"></script>
 <script>
-  function makeTagButtons(registry, repository, tags) {
+  function makeTagButtons(tags) {
     let html = '';
     for (let tag of tags) {
-      html += '<button class="loadTag" registry="' + registry + '" repository="' + repository + '">' + tag + '</button>';
+      html += '<button class="loadTag">' + tag + '</button>';
     }
     return html;
   }
-  function registerTagButtons() {
+  function registerTagButtons(containerRepository) {
     const tagButtons = document.getElementsByClassName('loadTag');
     for (let tagButton of tagButtons) {
       tagButton.onclick = () => {
         console.log(tagButton);
-        const registry = tagButton.getAttribute('registry');
-        const repository = tagButton.getAttribute('repository');
         const tag = tagButton.innerHTML;
-        console.log('Clicked tag button: ' + registry + '/' + repository + '/' + tag);
+        console.log('Clicked tag button: ' + containerRepository.registry + '/' + containerRepository.repository + '/' + tag);
 
-        new Container.Repository(registry, repository)
-          .Image(tag)
+        const image = containerRepository.Image(tag);
+        image
           .then(image => image.ManifestJSON)
           .then(manifestJson => {
             document.getElementById('manifest').innerHTML =
               JSON.stringify(manifestJson, null, 2);
           });
+        image
+          .then(image => image.Config)
+          .then(blob => blob.JSON)
+          .then(configJson => {
+            document.getElementById('config').innerHTML =
+              JSON.stringify(configJson, null, 2);
+          });
+        image
+          .then(image => image.Layers)
+          .then(layerBlobs => {
+            document.getElementById('layers').innerHTML = makeLayerButtons(layerBlobs);
+            registerLayerButtons(layerBlobs);
+          });
+      };
+    }
+  }
+
+  function makeLayerButtons(layerBlobs) {
+    let html = '';
+    for (let layerBlob of layerBlobs) {
+      html += '<button class="loadLayer">' + layerBlob.digest + '</button>';
+    }
+    return html;
+  }
+  function registerLayerButtons(layerBlobs) {
+    const digestToBlob = {};
+    for (let layerBlob of layerBlobs) {
+      digestToBlob[layerBlob.digest] = layerBlob;
+    }
+
+    const layerButtons = document.getElementsByClassName('loadLayer');
+    for (let layerButton of layerButtons) {
+      const layerDigest = layerButton.innerHTML;
+      layerButton.onclick = async () => {
+        console.log('clicked layer ' + layerDigest);
+        const layerBlob = digestToBlob[layerDigest];
+        const layerContent = await layerBlob.arrayBuffer;
+        const unzipped = pako.ungzip(layerContent).buffer;
+        untar(unzipped).then(
+          files => {
+            document.getElementById('files').innerHTML = makeFileButtons(files);
+            registerFileButtons(files);
+          },
+          err => {
+            throw 'untar error: ' + err
+          }
+        );
+      };
+    }
+  }
+
+  function makeFileButtons(files) {
+    let html = '';
+    for (let file of files) {
+      html += '<button class="showFile">' + file.name + '</button>';
+    }
+    return html;
+  }
+  function registerFileButtons(files) {
+    const filenameToFile = {};
+    for (let file of files) {
+      filenameToFile[file.name] = file;
+    }
+
+    const fileButtons = document.getElementsByClassName('showFile');
+    for (let fileButton of fileButtons) {
+      const filename = fileButton.innerHTML;
+      fileButton.onclick = () => {
+        document.getElementById('filename').innerHTML = filename;
+        const file = filenameToFile[filename];
+        document.getElementById('file').value = file.readAsString();
       };
     }
   }
@@ -54,12 +141,13 @@ Password: <input id="password" type="password" />
     const registry = document.getElementById('registry').value;
     const repository = document.getElementById('repository').value;
 
-    new Container.Repository(registry, repository)
+    const containerRepository = new Container.Repository(registry, repository);
+    containerRepository
       .Tags
       .then(tags => {
         console.log(tags);
-        document.getElementById('tags').innerHTML = makeTagButtons(registry, repository, tags);
-        registerTagButtons();
+        document.getElementById('tags').innerHTML = makeTagButtons(tags);
+        registerTagButtons(containerRepository);
       });
   };
 </script>

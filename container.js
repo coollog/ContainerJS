@@ -2,35 +2,40 @@ const Container = (function() {
   const exportedClasses = () => ({
 
     // A remote container image repository.
-    // All methods return Promise.
     Repository: Repository,
-
-    // A remote container image.
-    // All methods return Promise.
-    RemoteImage: RemoteImage,
-
-    // A blob.
-    // All methods return Promise.
-    Blob: Blob,
   });
 
+  // A remote container image repository.
   class Repository {
 
     // Initialize with the registry host and repository.
     constructor(registry, repository) {
+      this._registry = registry;
+      this._repository = repository;
       this._containerRegistry = new _ContainerRegistry(registry, repository);
     }
 
+    get registry() {
+      return this._registry;
+    }
+
+    get repository() {
+      return this._repository;
+    }
+
     // Gets the all the tags in the repository.
+    // returns Promise(list of tags)
     get Tags() {
       return this._containerRegistry.listTags();
     }
 
+    // returns Promise(RemoteImage)
     Image(tag) {
-      return Promise.resolve(new Container.RemoteImage(this._containerRegistry, tag));
+      return Promise.resolve(new RemoteImage(this._containerRegistry, tag));
     }
   };
 
+  // A remote container image.
   class RemoteImage {
 
     constructor(containerRegistry, tag) {
@@ -40,18 +45,30 @@ const Container = (function() {
       this._manifestPromise = null;
     }
 
-    // returns Promise(Container.Blob)
-    get Config() {
-      return this._manifest
-        .then(manifest => new Container.Blob(this._containerRegistry, manifest.configDigest));
-    }
-
     // returns Promise(JSON)
     get ManifestJSON() {
       return this._manifest.then(manifest => manifest.JSON);
     }
 
-    // returns _Manifest
+    // returns Promise(Container.Blob)
+    get Config() {
+      return this._manifest
+        .then(manifest => new Blob(this._containerRegistry, manifest.configDigest));
+    }
+
+    // returns Promise(list of Container.Blob)
+    get Layers() {
+      return this._manifest
+        .then(manifest => {
+          let layerBlobs = [];
+          for (let layer of manifest.layers) {
+            layerBlobs.push(new Blob(this._containerRegistry, layer.digest));
+          }
+          return layerBlobs;
+        });
+    }
+
+    // returns Promise(_Manifest)
     get _manifest() {
       if (this._manifestPromise === null) {
         this._manifestPromise =
@@ -63,11 +80,38 @@ const Container = (function() {
     }
   }
 
+  // A blob.
   class Blob {
 
     constructor(containerRegistry, digest) {
       this._containerRegistry = containerRegistry;
       this._digest = digest;
+
+      this._contentPromise = null;
+    }
+
+    // returns Promise(JSON)
+    get JSON() {
+      return this._blob.then(body => body.json());
+    }
+
+    // returns Promise(ArrayBuffer)
+    get arrayBuffer() {
+      return this._blob.then(body => body.arrayBuffer());
+    }
+
+    get digest() {
+      return this._digest;
+    }
+
+    // returns Promise(Body)
+    get _blob() {
+      if (this._contentPromise === null) {
+        this._contentPromise =
+          this._containerRegistry
+            .pullBlob(this._digest);
+      }
+      return this._contentPromise;
     }
   }
 
@@ -81,6 +125,7 @@ const Container = (function() {
       this._repository = repository;
     }
 
+    // returns Promise(list of tags)
     listTags() {
       const url = this._makeUrl('/tags/list');
       let request = _CrossOriginRequest.wrap(url);
@@ -95,6 +140,7 @@ const Container = (function() {
         });
     }
 
+    // returns Promise(manifest JSON)
     pullManifest(tag) {
       const url = this._makeUrl('/manifests/' + tag);
       let request = _CrossOriginRequest.wrap(url);
@@ -103,6 +149,15 @@ const Container = (function() {
         .setErrorHandler(401, this._make401Handler(request))
         .send()
         .then(response => response.json());
+    }
+
+    // returns Promise(Body)
+    pullBlob(digest) {
+      const url = this._makeUrl('/blobs/' + digest);
+      let request = _CrossOriginRequest.wrap(url);
+      return request
+        .setErrorHandler(401, this._make401Handler(request))
+        .send();
     }
 
     _makeUrl(apiSuffix) {
@@ -129,6 +184,7 @@ const Container = (function() {
     }
   };
 
+  // Sends a cross-origin Request through a cors proxy.
   class _CrossOriginRequest {
 
     static wrap(url) {
@@ -234,6 +290,7 @@ const Container = (function() {
     }
   }
 
+  // Manifest for an image
   class _Manifest {
 
     static parse(manifestJson) {
@@ -253,18 +310,22 @@ const Container = (function() {
       this._layers = layers;
     }
 
+    // returns the original JSON for the manifest
     get JSON() {
       return this._manifestJson;
     }
 
+    // returns the `config` field
     get config() {
       return this._config;
     }
 
+    // returns the container configuration blob digest
     get configDigest() {
       return this._config.digest;
     }
 
+    // returns the list of layers
     get layers() {
       return this._layers;
     }
