@@ -8,7 +8,7 @@ const busybox = new Container.Repository('registry.hub.docker.com', 'library/bus
 const tags = await busybox.Tags;
 
 // Gets the image `busybox:latest`.
-const image = await usybox.Image('latest');
+const image = await busybox.Image('latest');
 
 // Gets the manifest JSON for `busybox:latest`.
 const manifestJSON = await image.ManifestJSON;
