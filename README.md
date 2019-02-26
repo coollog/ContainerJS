@@ -1,1 +1,1 @@
- https://rawgit.com/coollog/ContainerJS/master/inspect.html
+http://htmlpreview.github.io/?https://github.com/coollog/ContainerJS/blob/master/inspect.html
