@@ -144,7 +144,7 @@ function registerFileButtons(files) {
   }
 }
 function clickFileButton(file) {
-  document.getElementById('textname').innerHTML = filename;
+  document.getElementById('textname').innerHTML = file.name;
   const textarea = document.getElementById('text');
   textarea.value = file.readAsString();
 }

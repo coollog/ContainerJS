@@ -183,19 +183,18 @@ const Container = (function() {
 
     // Handles 401 Unauthorized by fetching an auth token.
     _make401Handler(request) {
-      return response => {
+      return async response => {
         const wwwAuthenticate = response.headers.get('WWW-Authenticate');
-        return _TokenAuthenticator
+        const authorizationToken = await _TokenAuthenticator
           .fromWwwAuthenticate(wwwAuthenticate)
           .setRepository(this._repository)
-          .fetchToken()
-          .then(authorizationToken =>
-            request
-              .setAuthorizationToken(authorizationToken)
-              .setErrorHandler(401, response => {
-                throw new RegistryError('authenticate failed even with auth token');
-              })
-              .send());
+          .fetchToken();
+        return request
+          .setAuthorizationToken(authorizationToken)
+          .setErrorHandler(401, response => {
+            throw new RegistryError('authenticate failed even with auth token');
+          })
+          .send();
       };
     }
   };
@@ -233,20 +232,18 @@ const Container = (function() {
       return this;
     }
 
-    send() {
-      return fetch(this._request, {
+    async send() {
+      const response = await fetch(this._request, {
         headers: this._headers
-      })
-      .then(response => {
-        if (response.status !== 200) {
-          if (response.status in this._errorHandlers) {
-            return this._errorHandlers[response.status](response);
-          }
-          throw new RegistryError(
-            'Looks like there was a problem. Status Code: ' + response.status);
-        }
-        return response;
       });
+      if (response.status !== 200) {
+        if (response.status in this._errorHandlers) {
+          return this._errorHandlers[response.status](response);
+        }
+        throw new RegistryError(
+          'Looks like there was a problem. Status Code: ' + response.status);
+      }
+      return response;
     }
   }
 
@@ -282,16 +279,13 @@ const Container = (function() {
       return this;
     }
 
-    fetchToken() {
-      return _CrossOriginRequest.wrap(this._makeUrl)
-        .send()
-        .then(response => {
-          if (response.status !== 200) {
-            throw new RegistryError('request failed: ' + response.status);
-          }
-          return response.json();
-        })
-        .then(authResponse => authResponse.token);
+    async fetchToken() {
+      const response = await _CrossOriginRequest.wrap(this._makeUrl).send();
+      if (response.status !== 200) {
+        throw new RegistryError('request failed: ' + response.status);
+      }
+      const authResponse = await response.json();
+      return authResponse.token;
     }
 
     get _makeUrl() {
