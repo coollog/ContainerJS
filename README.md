@@ -8,18 +8,18 @@ const busybox = new Container.Repository('registry.hub.docker.com', 'library/bus
 const tags = await busybox.Tags;
 
 // Gets the image `busybox:latest`.
-const image = busybox.Image('latest');
+const image = await usybox.Image('latest');
 
 // Gets the manifest JSON for `busybox:latest`.
 const manifestJSON = await image.ManifestJSON;
 
 // Gets the config digest and JSON.
 const config = await image.Config;
-const configDigest = config.digest;
+const configDigest = await config.digest;
 const configJSON = await config.JSON;
 
 // Gets the layer tar.gz.
 const layers = await image.Layers;
-const layerDigest = layers[0].digest;
+const layerDigest = await layers[0].digest;
 const layerArrayBuffer = await layers[0].arrayBuffer;
 ```
