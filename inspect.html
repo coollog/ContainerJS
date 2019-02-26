@@ -1,153 +1,173 @@
 <style>
-  #file {
-    width: 500px;
-    height: 200px;
+  @import url('https://fonts.googleapis.com/css?family=Roboto');
+  @import url('https://fonts.googleapis.com/css?family=Roboto+Mono');
+
+  body, html {
+    height: 100%;
+    white-space: nowrap;
+    background-color: #2B3233;
+  }
+  body, html, div, input, button, label, textarea {
+    display: block;
+    margin: 0;
+    box-sizing: border-box;
+    width: 100%;
+
+    font: 14px 'Roboto', sans-serif;
+    line-height: 2em;
+  }
+  input {
+    padding: 0 0.5em;
+    font-family: 'Roboto Mono', monospace;
+    border: 1px solid #7C9194;
+  }
+  label {
+    text-align: center;
+    margin-top: 0.5em;
+    overflow-x: auto;
+    height: 2em;
+    white-space: nowrap;
+  }
+  button {
+    cursor: pointer;
+    overflow-x: auto;
+    padding: 0 1em;
+    background: white;
+    border: 1px solid #7C9194;
+  }
+
+  .loading {
+    background-image: url(https://loading.io/assets/img/triangle.svg);
+    background-repeat: repeat;
+  }
+  .loading * {
+    display: none;
+  }
+
+  .panel {
+    width: 20%;
+    float: left;
+    height: 100%;
+    transition: all 0.3s ease-in-out;
+    box-shadow: 2px 5px 10px 0px black;
+  }
+  .panelinside {
+    position: relative;
+    padding: 2em;
+    height: 100%;
+  }
+  #leftpanel .panelinside {
+    background-color: #F4F7F0;
+    z-index: 5;
+  }
+  #leftmiddlepanel {
+    margin-left: -20%;
+  }
+  #leftmiddlepanel .panelinside {
+    background-color: #F2EEE3;
+    z-index: 4;
+  }
+  #middlepanel {
+    margin-left: -20%;
+  }
+  #middlepanel .panelinside {
+    background-color: #C9D7D8;
+    z-index: 3;
+  }
+  #errorpanel {
+    margin-left: -20%;
+  }
+  #errorpanel .panelinside {
+    background-color: #F2DBC9;
+    z-index: 2;
+  }
+  #rightmiddlepanel {
+    margin-left: -20%;
+  }
+  #rightmiddlepanel .panelinside {
+    background-color: #9BABB2;
+    z-index: 1;
+  }
+  #rightpanel {
+    width: 40%;
+    position: absolute;
+    right: -20%;
+  }
+  #rightpanel:hover {
+    right: 0;
+  }
+  #rightpanel .panelinside {
+    background-color: #7C9194;
+    color: white;
+    z-index: 6;
+  }
+
+  .buttonList {
+    margin-top: 0.5em;
+    overflow-y: auto;
+    max-height: 90%;
+  }
+  #text {
+    width: 100%;
+    height: 90%;
+    padding: 0 0.5em;
   }
 </style>
 
-Registry: <input id="registry" value="registry.hub.docker.com" />
-<br />
-Repository: <input id="repository" value="library/busybox" />
-<br />
-Username: <input id="username" />
-<br />
-Password: <input id="password" type="password" />
-<br />
-<button id="getTags">Go</button>
-<br />
-<div>
-  Tags:
-  <div id="tags"></div>
+<div id="leftpanel" class="panel">
+  <div class="panelinside">
+    <label for="registry">REGISTRY</label>
+    <input id="registry" value="registry.hub.docker.com" />
+    
+    <label for="repository">REPOSITORY</label>
+    <input id="repository" value="library/busybox" />
+    
+    <label for="username">USERNAME</label>
+    <input id="username" />
+    <label for="password">PASSWORD</label>
+    <input id="password" type="password" />
+    <br />
+    <button id="getTags">GO</button>
+  </div>
 </div>
-<div>
-  Manifest:
-  <pre id="manifest"></pre>
+<div id="leftmiddlepanel" class="panel">
+  <div class="panelinside">
+    <label for="tags">TAGS</label>
+    <div id="tags" class="buttonList"></div>
+  </div>
 </div>
-<div>
-  Config:
-  <pre id="config"></pre>
+<div id="middlepanel" class="panel">
+  <div class="panelinside">
+    <label for="manifest">MANIFEST</label>
+    <button id="manifest">SHOW</button>
+
+    <label for="config">CONFIG</label>
+    <button id="config">@digest@</button>
+
+    <label for="layers">LAYERS</label>
+    <div id="layers"></div>
+  </div>
 </div>
-<div>
-  Layers:
-  <div id="layers"></div>
-  <div id="files"></div>
-  Showing file <span id="filename"></span>:
-  <br />
-  <textarea id="file"></textarea>
+<div id="errorpanel" class="panel">
+  <div class="panelinside">
+    <label for="error">ERROR</label>
+    <div id="error">@error@</div>
+  </div>
+</div>
+<div id="rightmiddlepanel" class="panel">
+  <div class="panelinside">
+    <label for="files">FILES</label>
+    <div id="files" class="buttonList"></div>
+  </div>
+</div>
+<div id="rightpanel" class="panel">
+  <div class="panelinside">
+    <label id="textname" for="text"></label>
+    <textarea id="text"></textarea>
+  </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/1.0.8/pako_inflate.min.js"></script>
 <script type='text/javascript' src="https://cdn.jsdelivr.net/gh/InvokIT/js-untar@v2.0.0/build/dist/untar.js"></script>
 <script src="container.js"></script>
-<script>
-  function makeTagButtons(tags) {
-    let html = '';
-    for (let tag of tags) {
-      html += '<button class="loadTag">' + tag + '</button>';
-    }
-    return html;
-  }
-  function registerTagButtons(containerRepository) {
-    const tagButtons = document.getElementsByClassName('loadTag');
-    for (let tagButton of tagButtons) {
-      tagButton.onclick = () => {
-        console.log(tagButton);
-        const tag = tagButton.innerHTML;
-        console.log('Clicked tag button: ' + containerRepository.registry + '/' + containerRepository.repository + '/' + tag);
-
-        const image = containerRepository.Image(tag);
-        image
-          .then(image => image.ManifestJSON)
-          .then(manifestJson => {
-            document.getElementById('manifest').innerHTML =
-              JSON.stringify(manifestJson, null, 2);
-          });
-        image
-          .then(image => image.Config)
-          .then(blob => blob.JSON)
-          .then(configJson => {
-            document.getElementById('config').innerHTML =
-              JSON.stringify(configJson, null, 2);
-          });
-        image
-          .then(image => image.Layers)
-          .then(layerBlobs => {
-            document.getElementById('layers').innerHTML = makeLayerButtons(layerBlobs);
-            registerLayerButtons(layerBlobs);
-          });
-      };
-    }
-  }
-
-  function makeLayerButtons(layerBlobs) {
-    let html = '';
-    for (let layerBlob of layerBlobs) {
-      html += '<button class="loadLayer">' + layerBlob.digest + '</button>';
-    }
-    return html;
-  }
-  function registerLayerButtons(layerBlobs) {
-    const digestToBlob = {};
-    for (let layerBlob of layerBlobs) {
-      digestToBlob[layerBlob.digest] = layerBlob;
-    }
-
-    const layerButtons = document.getElementsByClassName('loadLayer');
-    for (let layerButton of layerButtons) {
-      const layerDigest = layerButton.innerHTML;
-      layerButton.onclick = async () => {
-        console.log('clicked layer ' + layerDigest);
-        const layerBlob = digestToBlob[layerDigest];
-        const layerContent = await layerBlob.arrayBuffer;
-        const unzipped = pako.ungzip(layerContent).buffer;
-        untar(unzipped).then(
-          files => {
-            document.getElementById('files').innerHTML = makeFileButtons(files);
-            registerFileButtons(files);
-          },
-          err => {
-            throw 'untar error: ' + err
-          }
-        );
-      };
-    }
-  }
-
-  function makeFileButtons(files) {
-    let html = '';
-    for (let file of files) {
-      html += '<button class="showFile">' + file.name + '</button>';
-    }
-    return html;
-  }
-  function registerFileButtons(files) {
-    const filenameToFile = {};
-    for (let file of files) {
-      filenameToFile[file.name] = file;
-    }
-
-    const fileButtons = document.getElementsByClassName('showFile');
-    for (let fileButton of fileButtons) {
-      const filename = fileButton.innerHTML;
-      fileButton.onclick = () => {
-        document.getElementById('filename').innerHTML = filename;
-        const file = filenameToFile[filename];
-        document.getElementById('file').value = file.readAsString();
-      };
-    }
-  }
-
-  document.getElementById('getTags').onclick = function() {
-    const registry = document.getElementById('registry').value;
-    const repository = document.getElementById('repository').value;
-
-    const containerRepository = new Container.Repository(registry, repository);
-    containerRepository
-      .Tags
-      .then(tags => {
-        console.log(tags);
-        document.getElementById('tags').innerHTML = makeTagButtons(tags);
-        registerTagButtons(containerRepository);
-      });
-  };
-</script>
+<script src="inspect.js"></script>

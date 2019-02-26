@@ -3,6 +3,9 @@ const Container = (function() {
 
     // A remote container image repository.
     Repository: Repository,
+
+    // A registry exception.
+    RegistryError: RegistryError,
   });
 
   // A remote container image repository.
@@ -115,6 +118,18 @@ const Container = (function() {
     }
   }
 
+  // A registry exception.
+  class RegistryError {
+
+    constructor(errorMessage) {
+      this._errorMessage = errorMessage;
+    }
+
+    get error() {
+      return this._errorMessage;
+    }
+  }
+
   /**
    * Make calls to a Docker Registry V2 API.
    */
@@ -177,7 +192,7 @@ const Container = (function() {
             request
               .setAuthorizationToken(authorizationToken)
               .setErrorHandler(401, response => {
-                throw 'authenticate failed even with auth token';
+                throw new RegistryError('authenticate failed even with auth token');
               })
               .send());
       };
@@ -226,8 +241,8 @@ const Container = (function() {
           if (response.status in this._errorHandlers) {
             return this._errorHandlers[response.status](response);
           }
-          throw 'Looks like there was a problem. Status Code: ' +
-            response.status;
+          throw new RegistryError(
+            'Looks like there was a problem. Status Code: ' + response.status);
         }
         return response;
       });
@@ -271,7 +286,7 @@ const Container = (function() {
         .send()
         .then(response => {
           if (response.status !== 200) {
-            throw 'request failed: ' + response.status;
+            throw new RegistryError('request failed: ' + response.status);
           }
           return response.json();
         })
@@ -280,7 +295,7 @@ const Container = (function() {
 
     get _makeUrl() {
       if (this._repository === undefined) {
-        throw 'repository undefined';
+        throw new RegistryError('repository undefined');
       }
 
       const permissions = 'pull' + (this._includePushScope ? ',push' : '');
@@ -297,7 +312,7 @@ const Container = (function() {
       console.log('Parsing manifest:');
       console.log(manifestJson);
       if (manifestJson.schemaVersion !== 2) {
-        throw 'schemaVersion invalid: ' + manifestJson.schemaVersion;
+        throw new RegistryError('schemaVersion invalid: ' + manifestJson.schemaVersion);
       }
 
       return new _Manifest(manifestJson, manifestJson.config, manifestJson.layers);
