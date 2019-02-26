@@ -50,34 +50,33 @@ const Container = (function() {
 
     // returns Promise(JSON)
     get ManifestJSON() {
-      return this._manifest.then(manifest => manifest.JSON);
+      return (async () => (await this._manifest).JSON)();
     }
 
     // returns Promise(Container.Blob)
     get Config() {
-      return this._manifest
-        .then(manifest => new Blob(this._containerRegistry, manifest.configDigest));
+      return (async () => new Blob(this._containerRegistry, (await this._manifest).configDigest))();
     }
 
     // returns Promise(list of Container.Blob)
     get Layers() {
-      return this._manifest
-        .then(manifest => {
-          let layerBlobs = [];
-          for (let layer of manifest.layers) {
-            layerBlobs.push(new Blob(this._containerRegistry, layer.digest));
-          }
-          return layerBlobs;
-        });
+      return (async () => {
+        const manifest = await this._manifest;
+        let layerBlobs = [];
+        for (let layer of manifest.layers) {
+          layerBlobs.push(new Blob(this._containerRegistry, layer.digest));
+        }
+        return layerBlobs;
+      })();
     }
 
     // returns Promise(_Manifest)
     get _manifest() {
       if (this._manifestPromise === null) {
-        this._manifestPromise =
-          this._containerRegistry
-            .pullManifest(this._tag)
-            .then(manifest => _Manifest.parse(manifest));
+        this._manifestPromise = (async () => {
+          const manifest = await this._containerRegistry.pullManifest(this._tag);
+          return _Manifest.parse(manifest);
+        })();
       }
       return this._manifestPromise;
     }
@@ -95,12 +94,12 @@ const Container = (function() {
 
     // returns Promise(JSON)
     get JSON() {
-      return this._blob.then(body => body.json());
+      return (async () => (await this._blob).json())();
     }
 
     // returns Promise(ArrayBuffer)
     get arrayBuffer() {
-      return this._blob.then(body => body.arrayBuffer());
+      return (async () => (await this._blob).arrayBuffer())();
     }
 
     // returns Promise(digest)
@@ -111,9 +110,7 @@ const Container = (function() {
     // returns Promise(Body)
     get _blob() {
       if (this._contentPromise === null) {
-        this._contentPromise =
-          this._containerRegistry
-            .pullBlob(this._digest);
+        this._contentPromise = this._containerRegistry.pullBlob(this._digest);
       }
       return this._contentPromise;
     }
@@ -142,33 +139,31 @@ const Container = (function() {
     }
 
     // returns Promise(list of tags)
-    listTags() {
+    async listTags() {
       const url = this._makeUrl('/tags/list');
-      let request = _CrossOriginRequest.wrap(url);
-      return request
+      const request = _CrossOriginRequest.wrap(url);
+      const response = await request
         .setErrorHandler(401, this._make401Handler(request))
-        .send()
-        .then(response => response.json())
-        .then(result => {
-          console.log('result: ');
-          console.log(result);
-          return result.tags;
-        });
+        .send();
+      const result = await response.json();
+      console.log('result: ');
+      console.log(result);
+      return result.tags;
     }
 
     // returns Promise(manifest JSON)
-    pullManifest(tag) {
+    async pullManifest(tag) {
       const url = this._makeUrl('/manifests/' + tag);
-      let request = _CrossOriginRequest.wrap(url);
-      return request
+      const request = _CrossOriginRequest.wrap(url);
+      const response = await request
         .appendHeader('Accept', 'application/vnd.docker.distribution.manifest.v2+json')
         .setErrorHandler(401, this._make401Handler(request))
-        .send()
-        .then(response => response.json());
+        .send();
+      return response.json();
     }
 
     // returns Promise(Body)
-    pullBlob(digest) {
+    async pullBlob(digest) {
       const url = this._makeUrl('/blobs/' + digest);
       let request = _CrossOriginRequest.wrap(url);
       return request
