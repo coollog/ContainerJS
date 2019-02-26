@@ -20,115 +20,8 @@ Password: <input id="password" type="password" />
   <pre id="manifest"></pre>
 </div>
 
-<script src="containers.js"></script>
+<script src="container.js"></script>
 <script>
-  function makeCorsUrl(url) {
-    const corsProxy = 'https://cors-anywhere.herokuapp.com/';
-    return corsProxy + url;
-  }
-
-  function getAuthToken(wwwAuthenticate, repository, permissions) {
-    console.log('wwwAuthenticate: ' + wwwAuthenticate);
-
-    const realm = wwwAuthenticate.match(/realm="(.*?)"/)[1];
-    const service = wwwAuthenticate.match(/service="(.*?)"/)[1];
-
-    const url = makeCorsUrl(realm + '?service=' + service + '&scope=repository:' + repository + ':' + permissions);
-    return fetch(url, {
-      headers: {
-        Origin: '*'
-      }
-    })
-    .then((response) => {
-      if (response.status !== 200) {
-        throw 'request failed: ' + response.status;
-      }
-      return response.json();
-    })
-    .then((authResponse) => {
-      return authResponse.token;
-    });
-  }
-
-  function listTags(registry, repository) {
-    let headers = {
-      Origin: '*',
-    };
-
-    function doRequest(registry, repository, authToken) {
-      if (typeof authToken !== 'undefined') {
-        headers.Authorization = 'Bearer ' + authToken;
-        console.log('Using authToken=' + authToken);
-      }
-
-      return fetch(makeCorsUrl('https://' + registry + '/v2/' + repository + '/tags/list'), {
-        headers: headers
-      })
-      .then(response => {
-        if (response.status !== 200) {
-          console.log(response);
-          if (response.status === 401) {
-            if (typeof authToken !== 'undefined') {
-              throw 'authenticate failed even with auth token';
-            }
-
-            const wwwAuthenticate = response.headers.get('WWW-Authenticate');
-            return getAuthToken(wwwAuthenticate, repository, 'pull').then(
-              (authToken) => doRequest(registry, repository, authToken));
-          }
-          throw 'Looks like there was a problem. Status Code: ' +
-            response.status;
-        }
-
-        return response.json();
-      });
-    }
-
-    return doRequest(registry, repository)
-      .then(result => {
-        console.log('result: ');
-        console.log(result);
-        return result.tags;
-      });
-  }
-  function pullManifest(registry, repository, tag) {
-    let headers = {
-      Origin: '*',
-      Accept: 'application/vnd.docker.distribution.manifest.v2+json'
-    };
-
-    function doRequest(registry, repository, authToken) {
-      if (typeof authToken !== 'undefined') {
-        headers.Authorization = 'Bearer ' + authToken;
-        console.log('Using authToken=' + authToken);
-      }
-
-      return fetch(makeCorsUrl('https://' + registry + '/v2/' + repository + '/manifests/' + tag), {
-        headers: headers
-      })
-      .then(response => {
-        if (response.status !== 200) {
-          console.log(response);
-          if (response.status === 401) {
-            if (typeof authToken !== 'undefined') {
-              throw 'authenticate failed even with auth token';
-            }
-
-            const wwwAuthenticate = response.headers.get('WWW-Authenticate');
-            return getAuthToken(wwwAuthenticate, repository, 'pull').then(
-              (authToken) => doRequest(registry, repository, authToken));
-          }
-          throw 'Looks like there was a problem. Status Code: ' +
-            response.status;
-        }
-
-        return response.json();
-      });
-    }
-
-    return doRequest(registry, repository);
-  }
-
   function makeTagButtons(registry, repository, tags) {
     let html = '';
     for (let tag of tags) {
@@ -144,11 +37,15 @@ Password: <input id="password" type="password" />
         const registry = tagButton.getAttribute('registry');
         const repository = tagButton.getAttribute('repository');
         const tag = tagButton.innerHTML;
-
         console.log('Clicked tag button: ' + registry + '/' + repository + '/' + tag);
-        pullManifest(registry, repository, tag).then(manifest => {
-          document.getElementById('manifest').innerHTML = JSON.stringify(manifest, null, 2);
-        });
+
+        new Container.Repository(registry, repository)
+          .Image(tag)
+          .then(image => image.ManifestJSON)
+          .then(manifestJson => {
+            document.getElementById('manifest').innerHTML =
+              JSON.stringify(manifestJson, null, 2);
+          });
       };
     }
   }
@@ -157,10 +54,10 @@ Password: <input id="password" type="password" />
     const registry = document.getElementById('registry').value;
     const repository = document.getElementById('repository').value;
 
-    containerRegistry = new ContainerRegistry(registry, repository);
-    containerRegistry
-      .listTags()
+    new Container.Repository(registry, repository)
+      .Tags
       .then(tags => {
+        console.log(tags);
         document.getElementById('tags').innerHTML = makeTagButtons(registry, repository, tags);
         registerTagButtons();
       });
