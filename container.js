@@ -103,8 +103,9 @@ const Container = (function() {
       return this._blob.then(body => body.arrayBuffer());
     }
 
+    // returns Promise(digest)
     get digest() {
-      return this._digest;
+      return Promise.resolve(this._digest);
     }
 
     // returns Promise(Body)

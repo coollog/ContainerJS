@@ -8,7 +8,7 @@ document.getElementById('getTags').onclick = async () => {
   clearTextarea();
 
   const containerRepository = new Container.Repository(registry, repository);
-  const tags = await containerRepository.Tags
+  const tags = await containerRepository.Tags;
   displayTags(containerRepository, tags);
 
   // Shows leftmiddle panel children.
@@ -40,44 +40,25 @@ async function clickTagButton(containerRepository, tagButton) {
   hidePanels('rightmiddlepanel', 'errorpanel');
   clearTextarea();
 
-  const image = containerRepository.Image(tag);
-
-  const manifestPromise =
-    image
-      .then(image => image.ManifestJSON)
-      .then(manifestJson => registerManifestButton(manifestJson));
-  const configPromise = image.then(image => image.Config);
-  const configButtonPromise1 = 
-    configPromise
-      .then(blob => blob.digest)
-      .then(configDigest => {
-        document.getElementById('config').innerHTML = configDigest;
-      });
-  const configButtonPromise2 = 
-    configPromise
-      .then(blob => blob.JSON)
-      .then(configJson => registerConfigButton(configJson));
-  const layersPromise =
-    image
-      .then(image => image.Layers)
-      .then(layerBlobs => {
-        document.getElementById('layers').innerHTML = makeLayerButtons(layerBlobs);
-        registerLayerButtons(layerBlobs);
-      });
-
   try {
-    await manifestPromise;
-    await configButtonPromise1;
-    await configButtonPromise2; 
-    await layersPromise;
+    const image = await containerRepository.Image(tag);
 
+    registerManifestButton(await image.ManifestJSON);
+
+    const config = await image.Config;
+    document.getElementById('config').innerHTML = await config.digest;
+    registerConfigButton(await config.JSON);
+
+    const layerBlobs = await image.Layers;
+    document.getElementById('layers').innerHTML = await makeLayerButtons(layerBlobs);
+    await registerLayerButtons(layerBlobs);
+  
     // Shows middle panel children.
     showPanel('middlepanel');
 
   } catch (err) {
     if (!(err instanceof Container.RegistryError)) return;
-    const panel = document.getElementById('middlepanel');
-    panel.style.marginLeft = '-20%';
+    hidePanels('middlepanel');
     showErrorPanel(err.error);
   }
 }
@@ -102,17 +83,17 @@ function registerConfigButton(configJson) {
   };
 }
 
-function makeLayerButtons(layerBlobs) {
+async function makeLayerButtons(layerBlobs) {
   let html = '';
   for (let layerBlob of layerBlobs) {
-    html += '<button class="loadLayer">' + layerBlob.digest + '</button>';
+    html += '<button class="loadLayer">' + await layerBlob.digest + '</button>';
   }
   return html;
 }
-function registerLayerButtons(layerBlobs) {
+async function registerLayerButtons(layerBlobs) {
   const digestToBlob = {};
   for (let layerBlob of layerBlobs) {
-    digestToBlob[layerBlob.digest] = layerBlob;
+    digestToBlob[await layerBlob.digest] = layerBlob;
   }
 
   const layerButtons = document.getElementsByClassName('loadLayer');
@@ -168,6 +149,7 @@ function clickFileButton(file) {
   textarea.value = file.readAsString();
 }
 
+// Panel utilities
 function loadPanel(panelId) {
   const panel = document.getElementById(panelId);
   panel.style.marginLeft = 0;
