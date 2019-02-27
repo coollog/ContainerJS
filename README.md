@@ -1,4 +1,9 @@
+![experimental](https://img.shields.io/badge/stability-experimental-red.svg)
+[![Gitter chat](https://badges.gitter.im/coollog/ContainerJS.png)](https://gitter.im/coollog/ContainerJS)
+
 # ContainerJS
+
+**Note: This is an experimental prototype. Do NOT use for production.**
 
 ContainerJS is a (work-in-progress) JavaScript library for working with container images directly in your browser.
 
@@ -13,6 +18,11 @@ For a Python library, see [containerregistry](https://github.com/google/containe
 [![https://raw.githack.com/coollog/ContainerJS/master/inspect.html](assets/inspect-demo.png)](https://raw.githack.com/coollog/ContainerJS/master/inspect.html)
 
 # How to use ContainerJS
+
+```html
+<!-- Do NOT use for production. -->
+<script src="https://cdn.jsdelivr.net/gh/coollog/ContainerJS/container.js"></script>
+```
 
 ```javascript
 // Opens Docker Hub `busybox` repository.
