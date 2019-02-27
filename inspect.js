@@ -10,6 +10,12 @@
     get repository() {
       return document.getElementById('repository');
     }
+    get username() {
+      return document.getElementById('username');
+    }
+    get password() {
+      return document.getElementById('password');
+    }
     get tags() {
       return document.getElementById('tags');
     }
@@ -54,9 +60,20 @@
     }
   };
   
+  if (localStorage.registry) DOM.registry.value = localStorage.registry;
+  if (localStorage.repository) DOM.repository.value = localStorage.repository;
+  if (localStorage.username) DOM.username.value = localStorage.username;
+  if (localStorage.password) DOM.password.value = localStorage.password;
+
   DOM.getTags.onclick = async () => {
     const registry = DOM.registry.value;
     const repository = DOM.repository.value;
+    const username = DOM.username.value;
+    const password = DOM.password.value;
+    localStorage.registry = registry;
+    localStorage.repository = repository;
+    localStorage.username = username;
+    localStorage.password = password;
   
     // Loads leftmiddle panel, hides all other panels.
     loadPanel('leftmiddlepanel');
@@ -64,11 +81,23 @@
     clearTextarea();
   
     const containerRepository = new Container.Repository(registry, repository);
-    const tags = await containerRepository.Tags;
-    displayTags(containerRepository, tags);
-  
-    // Shows leftmiddle panel children.
-    showPanel('leftmiddlepanel');
+
+    if (username.length > 0) {
+      containerRepository.setCredentials(username, password);
+    }
+
+    try {
+      const tags = await containerRepository.Tags;
+      displayTags(containerRepository, tags);
+    
+      // Shows leftmiddle panel children.
+      showPanel('leftmiddlepanel');
+
+    } catch (err) {
+      if (!(err instanceof Container.RegistryError)) return;
+      hidePanels('leftmiddlepanel');
+      showErrorPanel(err.error);
+    }
   };
   
   function displayTags(containerRepository, tags) {

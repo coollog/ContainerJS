@@ -26,6 +26,10 @@ const Container = (function() {
       return this._repository;
     }
 
+    setCredentials(username, password) {
+      this._containerRegistry.setCredentials(username, password);
+    }
+
     // Gets the all the tags in the repository.
     // returns Promise(list of tags)
     get Tags() {
@@ -62,7 +66,7 @@ const Container = (function() {
     get Layers() {
       return (async () => {
         const manifest = await this._manifest;
-        let layerBlobs = [];
+        const layerBlobs = [];
         for (let layer of manifest.layers) {
           layerBlobs.push(new Blob(this._containerRegistry, layer.digest));
         }
@@ -138,37 +142,45 @@ const Container = (function() {
       this._repository = repository;
     }
 
+    setCredentials(username, password) {
+      this._credentials = {
+        username: username,
+        password: password
+      };
+    }
+
     // returns Promise(list of tags)
     async listTags() {
-      const url = this._makeUrl('/tags/list');
-      const request = _CrossOriginRequest.wrap(url);
-      const response = await request
-        .setErrorHandler(401, this._make401Handler(request))
-        .send();
+      const request = this._makeRequest('/tags/list');
+      const response = await request.send();
       const result = await response.json();
-      console.log('result: ');
-      console.log(result);
       return result.tags;
     }
 
     // returns Promise(manifest JSON)
     async pullManifest(tag) {
-      const url = this._makeUrl('/manifests/' + tag);
-      const request = _CrossOriginRequest.wrap(url);
-      const response = await request
-        .appendHeader('Accept', 'application/vnd.docker.distribution.manifest.v2+json')
-        .setErrorHandler(401, this._make401Handler(request))
-        .send();
+      const request = 
+        this._makeRequest('/manifests/' + tag)
+          .appendHeader('Accept', 'application/vnd.docker.distribution.manifest.v2+json');
+      const response = await request.send();
       return response.json();
     }
 
     // returns Promise(Body)
     async pullBlob(digest) {
-      const url = this._makeUrl('/blobs/' + digest);
-      let request = _CrossOriginRequest.wrap(url);
-      return request
-        .setErrorHandler(401, this._make401Handler(request))
-        .send();
+      const request = this._makeRequest('/blobs/' + digest);
+      return request.send();
+    }
+
+    _makeRequest(apiSuffix) {
+      const url = this._makeUrl(apiSuffix);
+      const request = _CrossOriginRequest.wrap(url);
+
+      request.setErrorHandler(401, this._make401Handler(request));
+      if (this._credentials !== undefined) {
+        request.setBasicAuthorization(this._credentials.username, this._credentials.password);
+      }
+      return request;
     }
 
     _makeUrl(apiSuffix) {
@@ -219,6 +231,12 @@ const Container = (function() {
 
     appendHeader(name, value) {
       this._headers.append(name, value);
+      return this;
+    }
+
+    setBasicAuthorization(username, password) {
+      const base64 = window.btoa(username + ':' + password);
+      this._headers.append('Authorization', 'Basic ' + base64);
       return this;
     }
 
