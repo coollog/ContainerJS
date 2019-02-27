@@ -50,12 +50,13 @@ button {
   float: left;
   height: 100%;
   transition: all 0.5s ease-out;
-  box-shadow: 2px 5px 10px 0px black;
+  box-shadow: 2px 10px 20px 0px black;
 }
 .panelinside {
   position: relative;
   padding: 2em;
   height: 100%;
+  box-shadow: -10px 0px 20px 0px black;
 }
 #leftpanel .panelinside {
   background-color: #F4F7F0;
@@ -101,6 +102,7 @@ button {
   background-color: #7C9194;
   color: white;
   z-index: 6;
+  box-shadow: 5px 0px 20px 0px black;
 }
 
 .buttonList {

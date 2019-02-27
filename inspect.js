@@ -20,7 +20,7 @@
       return document.getElementById('tags');
     }
     get tagButtons() {
-      return document.getElementsByClassName('loadTag');
+      return Array.from(document.getElementsByClassName('loadTag'));
     }
     get config() {
       return document.getElementById('config');
@@ -41,10 +41,10 @@
       return document.getElementById('config');
     }
     get layerButtons() {
-      return document.getElementsByClassName('loadLayer');
+      return Array.from(document.getElementsByClassName('loadLayer'));
     }
     get fileButtons() {
-      return document.getElementsByClassName('showFile');
+      return Array.from(document.getElementsByClassName('showFile'));
     }
     get files() {
       return document.getElementById('files');
@@ -105,16 +105,14 @@
     registerTagButtons(containerRepository);
   }
   function makeTagButtons(tags) {
-    let html = '';
-    for (let tag of tags) {
-      html += '<button class="loadTag">' + tag + '</button>';
-    }
-    return html;
+    return tags.map(tag => '<button class="loadTag">' + tag + '</button>').join('');
   }
   function registerTagButtons(containerRepository) {
-    for (let tagButton of DOM.tagButtons) {
-      tagButton.onclick = () => clickTagButton(containerRepository, tagButton);
-    }
+    DOM.tagButtons.forEach(tagButton => {
+      tagButton.onclick = () => {
+        clickTagButton(containerRepository, tagButton);
+      }
+    });
   }
   async function clickTagButton(containerRepository, tagButton) {
     const tag = tagButton.innerHTML;
@@ -150,37 +148,35 @@
   // TODO: Consolidate into a textarea display function.
   function registerManifestButton(manifestJson) {
     DOM.manifestButton.onclick = () => {
-      DOM.textname.innerHTML = 'MANIFEST';
-      DOM.text.value = JSON.stringify(manifestJson, null, 2);
+      displayText('MANIFEST', JSON.stringify(manifestJson, null, 2));
       event.stopPropagation();
     };
   }
   function registerConfigButton(configJson) {
     DOM.configButton.onclick = () => {
-      DOM.textname.innerHTML = 'CONFIG';
-      DOM.text.value = JSON.stringify(configJson, null, 2);
+      displayText('CONFIG', JSON.stringify(configJson, null, 2));
       event.stopPropagation();
     };
   }
   
   async function makeLayerButtons(layerBlobs) {
-    let html = '';
-    for (let layerBlob of layerBlobs) {
-      html += '<button class="loadLayer">' + await layerBlob.digest + '</button>';
-    }
-    return html;
+    return (await Promise.all(
+      layerBlobs.map(async layerBlob => '<button class="loadLayer">' + (await layerBlob.digest) + '</button>'))
+    ).join('');
   }
   async function registerLayerButtons(layerBlobs) {
-    const digestToBlob = {};
-    for (let layerBlob of layerBlobs) {
-      digestToBlob[await layerBlob.digest] = layerBlob;
-    }
+    const digestToBlob = await layerBlobs.reduce(
+      async (digestToBlob, layerBlob) => {
+        (await digestToBlob)[await layerBlob.digest] = layerBlob;
+        return digestToBlob;
+      }, 
+      Promise.resolve({}));
   
-    for (let layerButton of DOM.layerButtons) {
+    DOM.layerButtons.forEach(layerButton => {
       const layerDigest = layerButton.innerHTML;
       const layerBlob = digestToBlob[layerDigest];
       layerButton.onclick = () => clickLayerButton(layerBlob);
-    }
+    });
   }
   async function clickLayerButton(layerBlob) {
     // Loads rightmiddle panel, hides right panel.
@@ -203,27 +199,21 @@
   }
   
   function makeFileButtons(files) {
-    let html = '';
-    for (let file of files) {
-      html += '<button class="showFile">' + file.name + '</button>';
-    }
-    return html;
+    return files.map(file => '<button class="showFile">' + file.name + '</button>').join('');
   }
   function registerFileButtons(files) {
-    const filenameToFile = {};
-    for (let file of files) {
-      filenameToFile[file.name] = file;
-    }
-  
-    for (let fileButton of DOM.fileButtons) {
+    const filenameToFile = files.reduce(
+      (filenameToFile, file) => {
+        filenameToFile[file.name] = file;
+        return filenameToFile;
+      }, 
+      {});
+
+    DOM.fileButtons.forEach(fileButton => {
       const filename = fileButton.innerHTML;
       const file = filenameToFile[filename];
-      fileButton.onclick = () => clickFileButton(file);
-    }
-  }
-  function clickFileButton(file) {
-    DOM.textname.innerHTML = file.name;
-    DOM.text.value = file.readAsString();
+      fileButton.onclick = () => displayText(file.name, file.readAsString());
+    });
   }
   
   // Panel utilities
@@ -244,8 +234,11 @@
     DOM.errorPanel.style.marginLeft = 0;
     DOM.errorLabel.innerHTML = errorMessage;
   }
+  function displayText(title, text) {
+    DOM.textname.innerHTML = title;
+    DOM.text.value = text;
+  }
   function clearTextarea() {
-    DOM.textname.innerHTML = '';
-    DOM.text.value = '';
+    displayText('', '');
   }
 })();

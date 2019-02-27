@@ -263,7 +263,7 @@ const Container = (function() {
   class _TokenAuthenticator {
 
     static fromWwwAuthenticate(wwwAuthenticate) {
-      console.log('wwwAuthenticate: ' + wwwAuthenticate);
+      console.debug('wwwAuthenticate: ' + wwwAuthenticate);
 
       const realm = wwwAuthenticate.match(/realm="(.*?)"/)[1];
       const service = wwwAuthenticate.match(/service="(.*?)"/)[1];
@@ -317,8 +317,8 @@ const Container = (function() {
   class _Manifest {
 
     static parse(manifestJson) {
-      console.log('Parsing manifest:');
-      console.log(manifestJson);
+      console.debug('Parsing manifest:');
+      console.debug(manifestJson);
       if (manifestJson.schemaVersion !== 2) {
         throw new RegistryError('schemaVersion invalid: ' + manifestJson.schemaVersion);
       }
