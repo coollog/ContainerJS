@@ -1,123 +1,13 @@
-<style>
-  @import url('https://fonts.googleapis.com/css?family=Roboto');
-  @import url('https://fonts.googleapis.com/css?family=Roboto+Mono');
+<!-- CSS for this UI. -->
+<link rel="stylesheet" href="inspect.css">
 
-  body, html {
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    background-color: #2B3233;
-  }
-  body, html, div, input, button, label, textarea {
-    display: block;
-    margin: 0;
-    box-sizing: border-box;
-    width: 100%;
-
-    font: 14px 'Roboto', sans-serif;
-    line-height: 2em;
-  }
-  input {
-    padding: 0 0.5em;
-    font-family: 'Roboto Mono', monospace;
-    border: 1px solid #7C9194;
-  }
-  label {
-    text-align: center;
-    margin-top: 0.5em;
-    overflow-x: auto;
-    height: 2em;
-    white-space: nowrap;
-  }
-  button {
-    cursor: pointer;
-    overflow-x: auto;
-    padding: 0 1em;
-    background: white;
-    border: 1px solid #7C9194;
-  }
-
-  .loading {
-    background-image: url(https://loading.io/assets/img/triangle.svg);
-    background-repeat: repeat;
-    background-size: 33%;
-  }
-  .loading * {
-    display: none;
-  }
-
-  .panel {
-    width: 20%;
-    float: left;
-    height: 100%;
-    transition: all 0.5s ease-out;
-    box-shadow: 2px 5px 10px 0px black;
-  }
-  .panelinside {
-    position: relative;
-    padding: 2em;
-    height: 100%;
-  }
-  #leftpanel .panelinside {
-    background-color: #F4F7F0;
-    z-index: 5;
-  }
-  #leftmiddlepanel {
-    margin-left: -20%;
-  }
-  #leftmiddlepanel .panelinside {
-    background-color: #F2EEE3;
-    z-index: 4;
-  }
-  #middlepanel {
-    margin-left: -20%;
-  }
-  #middlepanel .panelinside {
-    background-color: #C9D7D8;
-    z-index: 3;
-  }
-  #errorpanel {
-    margin-left: -20%;
-  }
-  #errorpanel .panelinside {
-    background-color: #F2DBC9;
-    z-index: 2;
-  }
-  #rightmiddlepanel {
-    margin-left: -20%;
-  }
-  #rightmiddlepanel .panelinside {
-    background-color: #9BABB2;
-    z-index: 1;
-  }
-  #rightpanel {
-    width: 40%;
-    position: absolute;
-    right: -20%;
-  }
-  #rightpanel:hover {
-    right: 0;
-  }
-  #rightpanel .panelinside {
-    background-color: #7C9194;
-    color: white;
-    z-index: 6;
-  }
-
-  .buttonList {
-    margin-top: 0.5em;
-    overflow-y: auto;
-    max-height: 90%;
-  }
-  #error {
-    font-family: 'Roboto Mono', monospace;
-  }
-  #text {
-    width: 100%;
-    height: 90%;
-    padding: 0 0.5em;
-  }
-</style>
+<!-- Includes the ContainJS library. -->
+<script src="container.js"></script>
+<!-- JavaScript for this UI. -->
+<script src="inspect.js" defer></script>
+<!-- Dependencies for working with compressed layer tarballs. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pako/1.0.8/pako_inflate.min.js"></script>
+<script type='text/javascript' src="https://cdn.jsdelivr.net/gh/InvokIT/js-untar@v2.0.0/build/dist/untar.js"></script>
 
 <div id="leftpanel" class="panel">
   <div class="panelinside">
@@ -171,8 +61,3 @@
     <textarea id="text"></textarea>
   </div>
 </div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pako/1.0.8/pako_inflate.min.js"></script>
-<script type='text/javascript' src="https://cdn.jsdelivr.net/gh/InvokIT/js-untar@v2.0.0/build/dist/untar.js"></script>
-<script src="container.js"></script>
-<script src="inspect.js"></script>

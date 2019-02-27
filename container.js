@@ -32,9 +32,9 @@ const Container = (function() {
       return this._containerRegistry.listTags();
     }
 
-    // returns Promise(RemoteImage)
-    Image(tag) {
-      return Promise.resolve(new RemoteImage(this._containerRegistry, tag));
+    // returns tag => Promise(RemoteImage)
+    get Image() {
+      return tag => Promise.resolve(new RemoteImage(this._containerRegistry, tag));
     }
   };
 
