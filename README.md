@@ -1,4 +1,18 @@
-https://raw.githack.com/coollog/ContainerJS/master/inspect.html
+# ContainerJS
+
+ContainerJS is a (work-in-progress) JavaScript library for working with container images directly in your browser.
+
+For a Java library, see [Jib Core](https://github.com/GoogleContainerTools/jib/tree/master/jib-core).\
+For a Go library, see [go-containerregistry](https://github.com/google/go-containerregistry).\
+For a Python library, see [containerregistry](https://github.com/google/containerregistry).
+
+## Demo UI
+
+[`inspect.html`](https://raw.githack.com/coollog/ContainerJS/master/inspect.html) includes a demo using ContainerJS. The UI allows you to browse container image repositories and inspect their image contents.
+
+[![https://raw.githack.com/coollog/ContainerJS/master/inspect.html](assets/inspect-demo.png)](https://raw.githack.com/coollog/ContainerJS/master/inspect.html)
+
+# How to use ContainerJS
 
 ```javascript
 // Opens Docker Hub `busybox` repository.
@@ -23,3 +37,15 @@ const layers = await image.Layers;
 const layerDigest = await layers[0].digest;
 const layerArrayBuffer = await layers[0].arrayBuffer;
 ```
+
+## Existing features
+
+- Pull image, container configuration, and layers
+- Works in Chrome, haven't tried other browsers
+- Use credentials for private repositories
+
+## Future features
+
+- Add image pushing capability
+
+## Contributions welcome!
