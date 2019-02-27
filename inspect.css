@@ -7,7 +7,7 @@ body, html {
   overflow: hidden;
   background-color: #2B3233;
 }
-body, html, div, input, button, label, textarea {
+body, html, div, input, button, label, textarea, panel {
   display: block;
   margin: 0;
   box-sizing: border-box;
@@ -45,7 +45,7 @@ button {
   display: none;
 }
 
-.panel {
+panel {
   width: 20%;
   float: left;
   height: 100%;
@@ -58,47 +58,47 @@ button {
   height: 100%;
   box-shadow: -10px 0px 20px 0px black;
 }
-#leftpanel .panelinside {
+panel[name=left] .panelinside {
   background-color: #F4F7F0;
   z-index: 5;
 }
-#leftmiddlepanel {
+panel[name=leftmiddle] {
   margin-left: -20%;
 }
-#leftmiddlepanel .panelinside {
+panel[name=leftmiddle] .panelinside {
   background-color: #F2EEE3;
   z-index: 4;
 }
-#middlepanel {
+panel[name=middle] {
   margin-left: -20%;
 }
-#middlepanel .panelinside {
+panel[name=middle] .panelinside {
   background-color: #C9D7D8;
   z-index: 3;
 }
-#errorpanel {
+panel[name=error] {
   margin-left: -20%;
 }
-#errorpanel .panelinside {
+panel[name=error] .panelinside {
   background-color: #F2DBC9;
   z-index: 2;
 }
-#rightmiddlepanel {
+panel[name=rightmiddle] {
   margin-left: -20%;
 }
-#rightmiddlepanel .panelinside {
+panel[name=rightmiddle] .panelinside {
   background-color: #9BABB2;
   z-index: 1;
 }
-#rightpanel {
+panel[name=right] {
   width: 40%;
   position: absolute;
   right: -20%;
 }
-#rightpanel:hover {
+panel[name=right]:hover {
   right: 0;
 }
-#rightpanel .panelinside {
+panel[name=right] .panelinside {
   background-color: #7C9194;
   color: white;
   z-index: 6;

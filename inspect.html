@@ -9,7 +9,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/1.0.8/pako_inflate.min.js"></script>
 <script type='text/javascript' src="https://cdn.jsdelivr.net/gh/InvokIT/js-untar@v2.0.0/build/dist/untar.js"></script>
 
-<div id="leftpanel" class="panel">
+<panel name="left">
   <div class="panelinside">
     <label for="registry">REGISTRY</label>
     <input id="registry" value="registry.hub.docker.com" />
@@ -24,14 +24,14 @@
     <br />
     <button id="getTags">GO</button>
   </div>
-</div>
-<div id="leftmiddlepanel" class="panel">
+</panel>
+<panel name="leftmiddle">
   <div class="panelinside">
     <label for="tags">TAGS</label>
     <div id="tags" class="buttonList"></div>
   </div>
-</div>
-<div id="middlepanel" class="panel">
+</panel>
+<panel name="middle">
   <div class="panelinside">
     <label for="manifest">MANIFEST</label>
     <button id="manifest">SHOW</button>
@@ -42,22 +42,22 @@
     <label for="layers">LAYERS</label>
     <div id="layers"></div>
   </div>
-</div>
-<div id="errorpanel" class="panel">
+</panel>
+<panel name="error">
   <div class="panelinside">
     <label for="error">ERROR</label>
     <div id="error">@error@</div>
   </div>
-</div>
-<div id="rightmiddlepanel" class="panel">
+</panel>
+<panel name="rightmiddle">
   <div class="panelinside">
     <label for="files">FILES</label>
     <div id="files" class="buttonList"></div>
   </div>
-</div>
-<div id="rightpanel" class="panel">
+</panel>
+<panel name="right">
   <div class="panelinside">
     <label id="textname" for="text"></label>
     <textarea id="text"></textarea>
   </div>
-</div>
+</panel>

@@ -65,6 +65,120 @@
   if (localStorage.username) DOM.username.value = localStorage.username;
   if (localStorage.password) DOM.password.value = localStorage.password;
 
+  class _Panel {
+
+    static named(panelName) {
+      return new _Panel(document.querySelector('panel[name='+panelName+']'));
+    }
+
+    // private
+    constructor(panelElement) {
+      this._panelElement = panelElement;
+      this._panelsToHide = [];
+      this._clearsTextarea = false;
+    }
+
+    get panelElement() {
+      return this._panelElement;
+    }
+
+    set hidesPanel(panel) {
+      this._panelsToHide.push(panel);
+      return this;
+    }
+
+    set clearsTextArea(bool) {
+      this._clearsTextarea = bool;
+    }
+
+    set errorPanel(errorPanel) {
+      this._errorPanel = errorPanel;
+    }
+
+    async load(callDuringLoad) {
+      this._loadPanel();
+      this._hidePanels(...this._panelsToHide);
+      if (this._clearsTextarea) clearTextarea();
+
+      try {
+        await callDuringLoad();
+        this._showPanel();
+
+      } catch (err) {
+        this._handleError(err);
+      }
+    }
+
+    _loadPanel() {
+      this._panelElement.style.marginLeft = 0;
+      this._panelElement.children[0].classList.add('loading');
+    }
+
+    _hidePanels(...panels) {
+      panels.forEach(panel => panel._hide());
+    }
+
+    _hide() {
+      this._panelElement.style.marginLeft = '-20%';
+    }
+
+    _showPanel() {
+      this._panelElement.children[0].classList.remove('loading');
+    }
+
+    _handleError(error) {
+      if (this._errorPanel === undefined || !(error instanceof Container.RegistryError)) {
+        throw error;
+      }
+
+      this._hidePanels(this);
+      this._errorPanel.panelElement.style.marginLeft = 0;
+      DOM.errorLabel.innerHTML = error.error;
+    }
+  }
+
+  const Panels = new class {
+
+    constructor() {
+      this._leftMiddle = _Panel.named('leftmiddle');
+      this._middle = _Panel.named('middle');
+      this._rightMiddle = _Panel.named('rightmiddle');
+      this._right = _Panel.named('right');
+      this._error = _Panel.named('error');
+
+      this._leftMiddle.hidesPanel = this._middle;
+      this._leftMiddle.hidesPanel = this._rightMiddle;
+      this._leftMiddle.hidesPanel = this._error;
+      this._leftMiddle.errorPanel = this._error;
+      this._leftMiddle.clearsTextArea = true;
+
+      this._middle.hidesPanel = this._rightMiddle;
+      this._middle.hidesPanel = this._error;
+      this._middle.errorPanel = this._error;
+      this._middle.clearsTextArea = true;
+    }
+
+    get leftMiddle() {
+      return this._leftMiddle;
+    }
+
+    get middle() {
+      return this._middle;
+    }
+
+    get rightMiddle() {
+      return this._rightMiddle;
+    }
+
+    get right() {
+      return this._right;
+    }
+
+    get error() {
+      return this._error;
+    }
+  };
+
   DOM.getTags.onclick = async () => {
     const registry = DOM.registry.value;
     const repository = DOM.repository.value;
@@ -74,30 +188,17 @@
     localStorage.repository = repository;
     localStorage.username = username;
     localStorage.password = password;
-  
-    // Loads leftmiddle panel, hides all other panels.
-    loadPanel('leftmiddlepanel');
-    hidePanels('middlepanel', 'rightmiddlepanel', 'errorpanel');
-    clearTextarea();
-  
-    const containerRepository = new Container.Repository(registry, repository);
 
-    if (username.length > 0) {
-      containerRepository.setCredentials(username, password);
-    }
+    Panels.leftMiddle.load(async () => {
+      const containerRepository = new Container.Repository(registry, repository);
 
-    try {
+      if (username.length > 0) {
+        containerRepository.setCredentials(username, password);
+      }
+
       const tags = await containerRepository.Tags;
       displayTags(containerRepository, tags);
-    
-      // Shows leftmiddle panel children.
-      showPanel('leftmiddlepanel');
-
-    } catch (err) {
-      if (!(err instanceof Container.RegistryError)) return;
-      hidePanels('leftmiddlepanel');
-      showErrorPanel(err.error);
-    }
+    });
   };
   
   function displayTags(containerRepository, tags) {
@@ -116,13 +217,8 @@
   }
   async function clickTagButton(containerRepository, tagButton) {
     const tag = tagButton.innerHTML;
-  
-    // Loads middle panel, hides all other panels.
-    loadPanel('middlepanel');
-    hidePanels('rightmiddlepanel', 'errorpanel');
-    clearTextarea();
-  
-    try {
+
+    Panels.middle.load(async () => {
       const image = await containerRepository.Image(tag);
   
       registerManifestButton(await image.ManifestJSON);
@@ -134,15 +230,7 @@
       const layerBlobs = await image.Layers;
       DOM.layers.innerHTML = await makeLayerButtons(layerBlobs);
       await registerLayerButtons(layerBlobs);
-    
-      // Shows middle panel children.
-      showPanel('middlepanel');
-  
-    } catch (err) {
-      if (!(err instanceof Container.RegistryError)) return;
-      hidePanels('middlepanel');
-      showErrorPanel(err.error);
-    }
+    });
   }
   
   // TODO: Consolidate into a textarea display function.
@@ -179,23 +267,19 @@
     });
   }
   async function clickLayerButton(layerBlob) {
-    // Loads rightmiddle panel, hides right panel.
-    loadPanel('rightmiddlepanel');
-    hidePanels('errorpanel');
-  
-    const layerContent = await layerBlob.arrayBuffer;
-    const unzipped = pako.ungzip(layerContent).buffer;
-    const files = await untar(unzipped);
-    try {
-      DOM.files.innerHTML = makeFileButtons(files);
-      registerFileButtons(files);
-  
-      // Shows rightmiddle panel children.
-      showPanel('rightmiddlepanel');
-  
-    } catch (err) {
-      throw 'untar error: ' + err;
-    }
+    Panels.rightMiddle.load(async () => {
+      const layerContent = await layerBlob.arrayBuffer;
+      const unzipped = pako.ungzip(layerContent).buffer;
+      try {
+        const files = await untar(unzipped);
+      
+        DOM.files.innerHTML = makeFileButtons(files);
+        registerFileButtons(files);
+        
+      } catch (err) {
+        throw 'untar error: ' + err;
+      }
+    });
   }
   
   function makeFileButtons(files) {
@@ -216,24 +300,6 @@
     });
   }
   
-  // Panel utilities
-  function loadPanel(panelId) {
-    const panel = DOM.panel(panelId);
-    panel.style.marginLeft = 0;
-    panel.children[0].classList.add('loading');
-  }
-  function showPanel(panelId) {
-    const panel = DOM.panel(panelId);
-    panel.children[0].classList.remove('loading');
-  }
-  function hidePanels(...panelIds) {
-    const panelsToHide = panelIds.map(panelId => DOM.panel(panelId));
-    panelsToHide.forEach(panel => panel.style.marginLeft = '-20%');
-  }
-  function showErrorPanel(errorMessage) {
-    DOM.errorPanel.style.marginLeft = 0;
-    DOM.errorLabel.innerHTML = errorMessage;
-  }
   function displayText(title, text) {
     DOM.textname.innerHTML = title;
     DOM.text.value = text;
